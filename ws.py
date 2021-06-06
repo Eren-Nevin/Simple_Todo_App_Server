@@ -11,7 +11,8 @@ app.config['SECRET_KEY'] = 'secret!'
 # add item. (You can't remove or change an item that is not added yet).
 try:
     socketio = SocketIO(app, logger=True,
-                    # engineio_logger=True
+                    # engineio_logger=True,
+                    cors_allowed_origins="*",
                     )
 
     # Whenever a connected (thus synced) client pushes a transaction to server
@@ -19,6 +20,13 @@ try:
     @socketio.on('send_transaction_to_server', namespace='/socket.io')
     def handle_message(transaction):
         print(f"Received {transaction}")
+        # This is here because for some reason the json sent by react client
+        # doesn't get deserialized automatically but the flutter sent one do.
+        if (isinstance(transaction, str)):
+            transaction = json.loads(transaction)
+
+        print(type(transaction))
+
         db.add_transaction(transaction)
         send_transaction_to_client(transaction)
         return True

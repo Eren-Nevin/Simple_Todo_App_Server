@@ -3,12 +3,15 @@ import db
 
 app = Flask(__name__)
 
+transactions_db_name = "listappdev"
+
 
 try:
+    transactions_db_operator = db.TransactionsOperator(transactions_db_name)
     @app.route('/api/get_items')
     def get_items():
         print(f"Request From: {request.url}")
-        items = db.get_items_from_database()
+        items = transactions_db_operator.get_items_from_database()
         return json.jsonify(items)
 
     @app.route('/api/get_transactions')
@@ -17,9 +20,9 @@ try:
         url_args = request.args
         if 'from' in url_args.keys():
             starting_transaction = url_args['from']
-            transactions = db.get_transactions_from_database(starting_transaction)
+            transactions = transactions_db_operator.get_transactions_from_database(starting_transaction)
         else:
-            transactions = db.get_transactions_from_database(None)
+            transactions = transactions_db_operator.get_transactions_from_database(None)
         print(transactions)
         return json.jsonify(transactions)
 
@@ -27,10 +30,10 @@ try:
     def send_transactions():
         print(f"Request From: {request.url}")
         transactions = json.loads(request.data)
-        db.add_transactions(transactions)
+        transactions_db_operator.add_transactions(transactions)
         # TODO: Handle Errors Properly.
         return ("", 200)
 
 
 except:
-    db.close_db()
+    transactions_db_operator.close_db()

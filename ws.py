@@ -5,6 +5,8 @@ import json
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+transactions_db_name = "listappdev"
+users_db_name = "users"
 
 
 #TODO: Make sure no remove or change is added / queries when there is no
@@ -14,6 +16,7 @@ try:
                     # engineio_logger=True,
                     cors_allowed_origins="*",
                     )
+    transactions_db_operator = db.TransactionsOperator(transactions_db_name)
 
     # Whenever a connected (thus synced) client pushes a transaction to server
     # it is pushed to all other clients of that user
@@ -25,9 +28,7 @@ try:
         if (isinstance(transaction, str)):
             transaction = json.loads(transaction)
 
-        print(type(transaction))
-
-        db.add_transaction(transaction)
+        transactions_db_operator.add_transaction(transaction)
         send_transaction_to_client(transaction)
         return True
 
@@ -51,7 +52,7 @@ try:
         # transaction available in database right now, then the whole database
         # timeline should be changed for all clients. 
         # We first check if for this. 
-        lastest_transaction_id = db.get_lastest_transaction_id()
+        lastest_transaction_id = transactions_db_operator.get_lastest_transaction_id()
         isTimelineChanged = len(list(filter(lambda transaction: \
                                             transaction['transaction_id'] < \
                                             lastest_transaction_id, \
@@ -61,7 +62,7 @@ try:
         # No matter if the timeline is changed or not, we need to push the
         # pending transactions to the database. We need to do this after
         # checking for timeline changes though.
-        db.add_transactions(pending_transactions)
+        transactions_db_operator.add_transactions(pending_transactions)
 
         if isTimelineChanged:
             print("Timeline Changed")
@@ -101,7 +102,7 @@ try:
         emit('send_transaction_to_client', transaction, to='User001', include_self=False)
 
     def get_all_transactions_from_db():
-        return transaction_reducer(db.get_transactions_from_database(0))
+        return transaction_reducer(transactions_db_operator.get_transactions_from_database(0))
 
 
 # @socketio.on('connect')
@@ -110,7 +111,7 @@ try:
 #     # emit('my response', {'data': 'Connected'})
 
 except Exception:
-    db.close_db()
+    transactions_db_operator.close_db()
 
 if __name__ == '__main__':
     socketio.run(app)

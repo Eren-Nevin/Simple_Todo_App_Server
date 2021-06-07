@@ -1,8 +1,8 @@
 import psycopg2
 
 
-# TODO: Make the database name decidable by the importer.
-# db_conn =
+# TODO: Add Error Handling
+# TODO: Make conversion from cursor result to object seamless.
 
 class Operator:
     def __init__(self, db_name):
@@ -11,7 +11,30 @@ class Operator:
         self.connection.close()
 
 class UsersOperator(Operator):
-    pass
+    def add_user(self, user):
+        with self.connection.cursor() as curs:
+            curs.execute("""
+            INSERT INTO users (user_id, email, pass_hash, profile) VALUES (
+            %(user_id)s, %(email)s, %(pass_hash)s, %(profile)s);
+            """, user)
+        self.connection.commit()
+
+    def get_user(self, email):
+        with self.connection.cursor() as curs:
+            curs.execute("SELECT * FROM users WHERE email = %s", (email,))
+            column_names = list(map(lambda col: col.name, curs.description))
+            db_result = curs.fetchall()
+            if db_result:
+                user = {column_names[s]: db_result[0][s] for s in
+                        range(len(column_names))}
+                return user
+            else:
+                return None
+
+    # def authenticate_user(self, authentication):
+    #     with self.connection.cusor() as curs:
+    #         curs.execute("""
+    #         SELECT * FROM users WHERE 
 
 
 # TODO: Organize Methods

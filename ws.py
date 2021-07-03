@@ -62,13 +62,15 @@ try:
 
         transactions_db_operator.add_transaction(transaction,\
                         get_current_user_item_table(request))
-        send_transaction_to_client(transaction)
+        send_transaction_to_client(transaction,
+                                   get_current_user(request)['user_id'])
         return True
 
     @socketio.on('connect', namespace='/socket.io')
     def on_connection(user_auth_data):
         print("Connection Request")
         # print(request.args)
+        # Currently the token is passed as url argument (after ?).
         token = request.args['token']
         print(token)
         auth_result = authenticate_user_with_auth_server(token)
@@ -94,7 +96,7 @@ try:
         current_user = get_current_user(request)
         if current_user:
             print(
-                f"User {get_current_user(request)['user_id']} Disconnecting")
+                f"User {current_user['user_id']} Disconnecting")
             del connected_users[request.sid]
 
     @socketio.on('client_connect_sync', namespace='/socket.io')
@@ -104,7 +106,8 @@ try:
         # TODO: Use Authentication For User
         # transactions_db_operator.set_user_table_name('items')
         user = get_current_user(request)
-        join_room(user['user_id'])
+        # Currently room name is same as user_id
+        join_room(f"{user['user_id']}")
         print(f"A Client Joined Room {user['user_id']}")
 
         # If any of the transactions are out of order (older than the most recent
@@ -146,7 +149,7 @@ try:
             # event because it gets the transaction list as the return value of
             # its acknowledgement.
             emit('send_reset_transactions_to_client',
-                 get_all_transactions_from_db(), to='User001',
+                 get_all_transactions_from_db(), to=f"{user['user_id']}",
                  include_self=False)
             pass
         else:
@@ -159,7 +162,7 @@ try:
             # pending_transactions since it gets a transaction list to
             # reinitialize via its acknowledgement.
             for transaction in pending_transactions:
-                send_transaction_to_client(transaction)
+                send_transaction_to_client(transaction, user['user_id'])
 
         # This is the initial transaction list for the newly connected client
         return get_all_transactions_from_db()
@@ -168,9 +171,10 @@ try:
     def transaction_reducer(transaction_list):
         return transaction_list
 
-    def send_transaction_to_client(transaction):
+    def send_transaction_to_client(transaction, user_id):
+        print(f"Sending transaction to {user_id}")
         emit('send_transaction_to_client', transaction,
-             to='User001', include_self=False)
+             to=f"{user_id}", include_self=False)
 
     def get_all_transactions_from_db():
         return transaction_reducer(transactions_db_operator\

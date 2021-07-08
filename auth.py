@@ -13,7 +13,8 @@ db_name = "listappdev"
 try:
     authenticator = authentication.Authenticator(db_name)
 
-    @app.route('/api/signup', methods=['POST'])
+    @app.route('/api/auth/signup', methods=['POST'])
+    @cross_origin
     def signup():
         print(f"Request From: {request.url}")
         user = json.loads(request.data)
@@ -29,7 +30,7 @@ try:
         print(result)
         return json.jsonify(result)
 
-    @app.route('/api/login', methods=['POST'])
+    @app.route('/api/auth/login', methods=['POST'])
     @cross_origin()
     def login():
         print(f"Request From: {request.url}")
@@ -46,7 +47,8 @@ try:
         print(result)
         return json.jsonify(result)
 
-    @app.route('/api/check_login', methods=['POST'])
+    @app.route('/api/auth/check_login', methods=['POST'])
+    @cross_origin()
     def checkLoggedIn():
         print(f"Request From: {request.url}")
         credentials = json.loads(request.data)
@@ -56,10 +58,28 @@ try:
            result['success'] = False
         else:
             result['success'] = True
-        result['user'] = _result
+        result['message'] = _result
         # result['message'] = _result
         print(result)
         return json.jsonify(result)
+
+    # This is only called when user wants to log out from all of its devices. If
+    # only logging out from one device, the token is deleted from the device
+    # locally.
+    # TODO: Inform websocket from user logout.
+    @app.route('/api/auth/logout_all', methods=['POST'])
+    @cross_origin()
+    def logout_all():
+        pass
+
+    @app.route('/api/auth/logout', methods=['POST'])
+    @cross_origin()
+    def logout():
+        print(f"Request From: {request.url}")
+        credentials = json.loads(request.data)
+        print(f"Logging out {credentials['token']}")
+        _result = authenticator.log_out(credentials['token'])
+        return json.jsonify(_result)
 
 except:
     authenticator.close_authenticator()

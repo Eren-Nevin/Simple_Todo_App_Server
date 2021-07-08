@@ -11,10 +11,9 @@ app.config['SECRET_KEY'] = 'secret!'
 db_name = "listappdev"
 users_db_name = "users"
 
-auth_server_check_login_address = "http://127.0.0.1:8833/api/check_login"
+auth_server_check_login_address = "http://127.0.0.1:8833/api/auth/check_login"
 
 connected_users = {}
-
 
 def authenticate_user_with_auth_server(token=0):
     print("Sending Authentication")
@@ -23,7 +22,7 @@ def authenticate_user_with_auth_server(token=0):
     result = json.loads(http_response.text)
     is_logged_in = result['success']
     if is_logged_in:
-        return result['user']
+        return result['message']
     else:
         return False
 

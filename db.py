@@ -64,13 +64,13 @@ class UsersOperator(Operator):
             else:
                 return None
 
-    def checkUserLoggedIn(self, user):
+    def check_user_is_logged_in(self, user):
         with self.connection.cursor() as curs:
             curs.execute("SELECT * FROM loggedInUsers WHERE user_id = %s;",
                          (user.user_id))
             return len(curs.fetchall()) != 0
 
-    def getLoggedInUserByToken(self, token):
+    def get_logged_in_user_by_token(self, token):
         with self.connection.cursor() as curs:
             curs.execute("SELECT * FROM loggedInUsers NATURAL JOIN users WHERE token = %s;",
                          (token,))
@@ -84,26 +84,44 @@ class UsersOperator(Operator):
             else:
                 return None
 
-    def addUserToLoggedIn(self, token, user_id):
+    def add_token_to_logged_in(self, token, user_id):
         with self.connection.cursor() as curs:
             curs.execute("INSERT INTO loggedInUsers VALUES (%s, %s);",
                          (token, user_id))
             # Check if it is properly added and handle errors
         self.connection.commit()
 
-    def removeUserFromLoggedIn(self, user_id):
+    def remove_token_from_logged_in(self, token):
+        with self.connection.cursor() as curs:
+            curs.execute("DELETE FROM loggedInUsers WHERE token = %s;",
+                         (token,))
+        self.connection.commit()
+        # TODO: Check If Done Correctly
+        return True
+
+    def remove_user_from_logged_in(self, user_id):
         with self.connection.cursor() as curs:
             curs.execute("DELETE FROM loggedInUsers WHERE user_id = %s;",
-                         (user_id))
-            # Check If Done Correctly
+                         (user_id,))
         self.connection.commit()
+        # TODO: Check If Done Correctly
+        return True
 
-
-    # def authenticate_user(self, authentication):
-    #     with self.connection.cusor() as curs:
-    #         curs.execute("""
-    #         SELECT * FROM users WHERE 
-
+    def get_all_user_login_tokens(self, user_id):
+        with self.connection.cursor() as curs:
+            curs.execute("SELECT token FROM loggedInUsers WHERE user_id = %s;",
+                         (user_id,))
+            column_names = list(map(lambda col: col.name, curs.description))
+            db_result = curs.fetchall()
+            if db_result:
+                # This should only return one row.
+                # result = {column_names[s]: db_result[0][s] for s in
+                #         range(len(column_names))}
+                print(db_result)
+                result = [db_result[i][0] for i in range(len(db_result))]
+                return result
+            else:
+                return None
 
 # TODO: Organize Methods
 class TransactionsOperator(Operator):

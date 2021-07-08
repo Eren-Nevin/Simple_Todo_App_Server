@@ -32,28 +32,44 @@ class Authenticator:
         user = self.usersDBOperator.get_user(email)
         if user:
             if check_password_hash(user['pass_hash'], password):
-                return self.log_in(user)
+                return self._register_new_token(user)
             else:
                 return "Wrong Password"
         else:
             return "Not Exists"
 
+
+    # This removes the specific token form loggedInUsers table. This should be
+    # accompanied with the device removing the token locally.
+    def log_out(self, token):
+        _result = self.usersDBOperator.remove_token_from_logged_in(token)
+        return {'success': _result}
+
+    # This removes all tokens associated with the user from loggedInUsers table.
+    # TODO: This should inform all clients currently connected to logout.
+    def log_out_from_all_devices(self, user_id):
+        _result = self.usersDBOperator.remove_user_from_logged_in(user_id)
+        return {'success': _result}
+
     def is_logged_in(self, token):
-        user = self.usersDBOperator.getLoggedInUserByToken(token)
+        user = self.usersDBOperator.get_logged_in_user_by_token(token)
         if user:
             return user
         else:
             return "Not Logged In"
 
-    # Currently token is simply epoch time hashed by sha256
-    def log_in(self, user):
+    # TODO: Currently token is simply epoch time hashed by sha256. Change it to
+    # something more secure
+    def _register_new_token(self, user):
+        # token = self.usersDBOperator.is_user_in_logged_in(user['user_id'])
+        # if not token:
         token = generate_password_hash(f"{time.time_ns}", method="sha256")
-        self.usersDBOperator.addUserToLoggedIn(token, user['user_id'])
+        self.usersDBOperator.add_token_to_logged_in(token, user['user_id'])
         return token
 
-    #TODO: Implement
-    def log_out(self, user):
-        pass
+
+    def _log_out(self, user):
+        self.usersDBOperator.remove_user_from_logged_in(user['user-id'])
 
     @staticmethod
     def get_user_public_info(user):
